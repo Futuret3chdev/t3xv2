@@ -1,0 +1,16 @@
+{
+  "name": "t3xv2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "T3X v2 Network Portal — production clone base of memetorrent site with native T3X staking, minting, and genesis. Presented by Futuret3Ch.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
