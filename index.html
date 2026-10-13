@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T3X v2 Network • Futuret3Ch</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #07090d; color: #e8f0ff; font-family: system-ui, sans-serif; }
+    header { padding: 24px; border-bottom: 1px solid #1e2836; }
+    h1 { font-size: 32px; background: linear-gradient(90deg, #00e5ff, #a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { color: #889; font-size: 14px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: #11151c; border: 1px solid #1e2836; border-radius: 16px; padding: 20px; }
+    .stat { font-size: 28px; font-weight: 700; color: #00e5ff; }
+    button { background: linear-gradient(135deg, #00c6ff, #7c3aed); border: none; color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #2a3544; background: #0c1016; color: #fff; margin: 6px 0; }
+    .tx { font-size: 12px; border-bottom: 1px solid #1e2836; padding: 8px 0; }
+    pre { background: #0c1016; padding: 12px; border-radius: 8px; font-size: 11px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>T3X v2 Network</h1>
+    <div class="sub">Presented by Futuret3Ch • Native coin • Staking • User minting • Genesis</div>
+  </header>
+  <div class="container">
+    <div class="grid">
+      <div class="card">
+        <div>Native Supply</div>
+        <div class="stat" id="supply">1,000,000,000</div>
+        <div>T3X</div>
+      </div>
+      <div class="card">
+        <div>Total Staked</div>
+        <div class="stat" id="staked">0</div>
+        <div>T3X</div>
+      </div>
+      <div class="card">
+        <div>Block Height</div>
+        <div class="stat" id="height">1</div>
+      </div>
+      <div class="card">
+        <div>Validators</div>
+        <div class="stat" id="validators">1</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <h3>Genesis Block</h3>
+      <pre id="genesis"></pre>
+      <button onclick="createGenesis()" style="margin-top: 10px;">Initialize / Show Genesis</button>
+    </div>
+
+    <div class="grid" style="margin-top: 20px;">
+      <div class="card">
+        <h3>Stake T3X</h3>
+        <input id="stakeAddr" placeholder="Your wallet address" />
+        <input id="stakeAmt" type="number" placeholder="Amount" />
+        <button onclick="stake()">Stake</button>
+      </div>
+      <div class="card">
+        <h3>Mint Your Own Coin</h3>
+        <input id="mName" placeholder="Name" />
+        <input id="mSymbol" placeholder="Symbol" />
+        <input id="mSupply" type="number" placeholder="Supply" />
+        <button onclick="mintUserCoin()">Mint onto Network</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <h3>Recent Transactions</h3>
+      <div id="txs"></div>
+    </div>
+  </div>
+
+  <script>
+    const CHAIN_KEY = 't3x_chain_v2';
+    let chain = { height: 1, supply: 1000000000, staked: 0, validators: 1, txs: [], genesis: null };
+
+    function load() {
+      const d = localStorage.getItem(CHAIN_KEY);
+      if (d) chain = JSON.parse(d);
+      render();
+    }
+
+    function save() {
+      localStorage.setItem(CHAIN_KEY, JSON.stringify(chain));
+      render();
+    }
+
+    function render() {
+      document.getElementById('supply').textContent = chain.supply.toLocaleString();
+      document.getElementById('staked').textContent = chain.staked.toLocaleString();
+      document.getElementById('height').textContent = chain.height;
+      document.getElementById('validators').textContent = chain.validators;
+      document.getElementById('genesis').textContent = chain.genesis ? JSON.stringify(chain.genesis, null, 2) : 'Not initialized';
+      const txEl = document.getElementById('txs');
+      txEl.innerHTML = chain.txs.slice(-8).reverse().map(t => `<div class="tx">${t.type}: ${t.amount || ''} ${t.symbol || 'T3X'} — ${t.from?.slice(0,10) || 'network'}...</div>`).join('') || 'No transactions yet';
+    }
+
+    async function createGenesis() {
+      if (chain.genesis) return alert('Genesis already exists');
+      const data = { timestamp: Date.now(), message: 'T3X v2 Genesis — Futuret3Ch', supply: chain.supply };
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(data)));
+      const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+      chain.genesis = { ...data, hash: hashHex, height: 1 };
+      chain.txs.push({ type: 'genesis', amount: chain.supply, from: 'genesis' });
+      save();
+      alert('Genesis block created: ' + hashHex.slice(0, 16) + '...');
+    }
+
+    function stake() {
+      const addr = document.getElementById('stakeAddr').value;
+      const amt = parseFloat(document.getElementById('stakeAmt').value);
+      if (!addr || !amt) return alert('Fill fields');
+      chain.staked += amt;
+      chain.height++;
+      chain.txs.push({ type: 'stake', amount: amt, from: addr });
+      save();
+    }
+
+    function mintUserCoin() {
+      const name = document.getElementById('mName').value;
+      const symbol = document.getElementById('mSymbol').value;
+      const supply = parseFloat(document.getElementById('mSupply').value);
+      if (!name || !symbol || !supply) return alert('Fill all');
+      chain.height++;
+      chain.txs.push({ type: 'mint', symbol, amount: supply, from: 'user', name });
+      save();
+      alert(`${symbol} minted onto T3X network`);
+    }
+
+    load();
+  </script>
+</body>
+</html>
